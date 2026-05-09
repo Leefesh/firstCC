@@ -1,0 +1,732 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>去哪儿玩 - 旅游推荐</title>
+    <style>
+        /* ===== Reset & Base ===== */
+        *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+        html { scroll-behavior: smooth; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "PingFang SC", "Microsoft YaHei", sans-serif;
+            background: #f5f7fa;
+            color: #2d3436;
+            line-height: 1.6;
+        }
+
+        /* ===== Hero ===== */
+        .hero {
+            position: relative;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            background: linear-gradient(135deg, #0c0c1d 0%, #1a1a3e 40%, #2d1b4e 70%, #1a2a3a 100%);
+            overflow: hidden;
+        }
+        .hero::before {
+            content: '';
+            position: absolute;
+            width: 600px; height: 600px;
+            background: radial-gradient(circle, rgba(99,102,241,0.15) 0%, transparent 70%);
+            top: -200px; right: -200px;
+            animation: float 8s ease-in-out infinite;
+        }
+        .hero::after {
+            content: '';
+            position: absolute;
+            width: 500px; height: 500px;
+            background: radial-gradient(circle, rgba(236,72,153,0.1) 0%, transparent 70%);
+            bottom: -200px; left: -150px;
+            animation: float 10s ease-in-out infinite reverse;
+        }
+        @keyframes float {
+            0%, 100% { transform: translate(0, 0) scale(1); }
+            50% { transform: translate(30px, -30px) scale(1.1); }
+        }
+
+        .hero-content { position: relative; z-index: 1; padding: 2rem; }
+        .hero h1 {
+            font-size: clamp(2.5rem, 7vw, 5rem);
+            font-weight: 800;
+            color: #fff;
+            margin-bottom: 1rem;
+            letter-spacing: 2px;
+        }
+        .hero h1 span {
+            background: linear-gradient(135deg, #667eea 0%, #f093fb 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        .hero p {
+            font-size: clamp(1rem, 2vw, 1.3rem);
+            color: rgba(255,255,255,0.7);
+            max-width: 600px;
+            margin: 0 auto 2.5rem;
+        }
+
+        /* ===== Buttons ===== */
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 14px 36px;
+            border: none;
+            border-radius: 50px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-decoration: none;
+        }
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #fff;
+            box-shadow: 0 8px 30px rgba(102,126,234,0.4);
+        }
+        .btn-primary:hover { transform: translateY(-3px); box-shadow: 0 12px 40px rgba(102,126,234,0.5); }
+        .btn-outline {
+            background: transparent;
+            color: #fff;
+            border: 2px solid rgba(255,255,255,0.3);
+        }
+        .btn-outline:hover { border-color: #667eea; background: rgba(102,126,234,0.1); }
+        .btn-secondary {
+            background: #fff;
+            color: #2d3436;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+        .btn-secondary:hover { transform: translateY(-2px); box-shadow: 0 8px 25px rgba(0,0,0,0.15); }
+        .hero-btns { display: flex; gap: 16px; justify-content: center; flex-wrap: wrap; }
+
+        /* ===== Scroll indicator ===== */
+        .scroll-indicator {
+            position: absolute;
+            bottom: 40px;
+            left: 50%;
+            transform: translateX(-50%);
+            color: rgba(255,255,255,0.4);
+            font-size: 0.85rem;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+            animation: bounce 2s infinite;
+        }
+        .scroll-indicator .arrow { width: 24px; height: 24px; border-right: 2px solid; border-bottom: 2px solid; transform: rotate(45deg); opacity: 0.4; }
+        @keyframes bounce { 0%, 100% { transform: translateX(-50%) translateY(0); } 50% { transform: translateX(-50%) translateY(10px); } }
+
+        /* ===== Section ===== */
+        .section {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 80px 24px;
+        }
+        .section-title {
+            text-align: center;
+            margin-bottom: 3rem;
+        }
+        .section-title h2 {
+            font-size: 2.2rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+        }
+        .section-title p {
+            color: #636e72;
+            font-size: 1.05rem;
+        }
+
+        /* ===== Random Pick ===== */
+        #random-section {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            margin: 0;
+            max-width: none;
+            padding: 80px 24px;
+        }
+        #random-section .section-title h2,
+        #random-section .section-title p { color: #fff; }
+
+        .random-box {
+            max-width: 600px;
+            margin: 0 auto;
+            text-align: center;
+            background: rgba(255,255,255,0.12);
+            backdrop-filter: blur(12px);
+            border-radius: 24px;
+            padding: 3rem 2rem;
+            border: 1px solid rgba(255,255,255,0.15);
+        }
+        .random-box .shake-btn {
+            width: 100px; height: 100px;
+            border-radius: 50%;
+            border: none;
+            background: #fff;
+            color: #667eea;
+            font-size: 3rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-bottom: 1.5rem;
+            box-shadow: 0 8px 30px rgba(0,0,0,0.2);
+        }
+        .random-box .shake-btn:hover { transform: scale(1.05); }
+        .random-box .shake-btn:active { transform: scale(0.95); }
+        .random-box .shake-btn.spinning { animation: spin 0.6s ease-in-out 3; }
+        @keyframes spin {
+            0% { transform: rotate(0deg) scale(1); }
+            25% { transform: rotate(15deg) scale(1.1); }
+            75% { transform: rotate(-15deg) scale(1.1); }
+            100% { transform: rotate(0deg) scale(1); }
+        }
+
+        .random-result {
+            min-height: 120px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+        .random-result .place { font-size: 1.8rem; font-weight: 700; color: #fff; margin-bottom: 0.3rem; }
+        .random-result .desc { color: rgba(255,255,255,0.8); font-size: 1rem; }
+        .random-result .tag {
+            display: inline-block;
+            padding: 4px 14px;
+            background: rgba(255,255,255,0.2);
+            border-radius: 20px;
+            color: #fff;
+            font-size: 0.85rem;
+            margin-top: 10px;
+        }
+
+        /* ===== Category Filter ===== */
+        .categories {
+            display: flex;
+            gap: 12px;
+            justify-content: center;
+            flex-wrap: wrap;
+            margin-bottom: 2.5rem;
+        }
+        .category-btn {
+            padding: 10px 24px;
+            border: 2px solid #dfe6e9;
+            border-radius: 50px;
+            background: #fff;
+            cursor: pointer;
+            font-size: 0.95rem;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            color: #636e72;
+        }
+        .category-btn:hover { border-color: #667eea; color: #667eea; }
+        .category-btn.active {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-color: transparent;
+            color: #fff;
+            box-shadow: 0 4px 15px rgba(102,126,234,0.4);
+        }
+
+        /* ===== Destination Cards ===== */
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 28px;
+        }
+        .card {
+            background: #fff;
+            border-radius: 20px;
+            overflow: hidden;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.06);
+            transition: all 0.4s ease;
+            cursor: pointer;
+            opacity: 0;
+            transform: translateY(20px);
+            animation: fadeUp 0.5s ease forwards;
+        }
+        .card:hover { transform: translateY(-8px); box-shadow: 0 12px 40px rgba(0,0,0,0.12); }
+        @keyframes fadeUp { to { opacity: 1; transform: translateY(0); } }
+
+        .card-img {
+            width: 100%; height: 200px;
+            object-fit: cover;
+            display: block;
+            background: #dfe6e9;
+        }
+        .card-body { padding: 18px 20px 22px; }
+        .card-body .name {
+            font-size: 1.2rem;
+            font-weight: 700;
+            margin-bottom: 4px;
+        }
+        .card-body .location {
+            color: #636e72;
+            font-size: 0.9rem;
+            margin-bottom: 8px;
+        }
+        .card-body .location::before { content: '📍 '; }
+        .card-body .brief {
+            color: #636e72;
+            font-size: 0.9rem;
+            line-height: 1.5;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+        .card-footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 12px;
+            padding-top: 12px;
+            border-top: 1px solid #f0f0f0;
+        }
+        .card-footer .tag {
+            padding: 3px 12px;
+            background: #f0f0ff;
+            border-radius: 12px;
+            font-size: 0.8rem;
+            color: #667eea;
+        }
+        .card-footer .rating { color: #f39c12; font-size: 0.9rem; }
+
+        /* ===== Modal ===== */
+        .modal-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.6);
+            backdrop-filter: blur(8px);
+            z-index: 1000;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            padding: 24px;
+        }
+        .modal-overlay.open { display: flex; }
+        .modal {
+            background: #fff;
+            border-radius: 24px;
+            max-width: 700px;
+            width: 100%;
+            max-height: 90vh;
+            overflow-y: auto;
+            animation: modalIn 0.3s ease;
+        }
+        @keyframes modalIn { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
+        .modal-img {
+            width: 100%; height: 300px;
+            object-fit: cover;
+            display: block;
+            background: #dfe6e9;
+        }
+        .modal-body { padding: 28px; }
+        .modal-body .name { font-size: 1.8rem; font-weight: 700; }
+        .modal-body .location { color: #636e72; margin: 4px 0 12px; }
+        .modal-body .location::before { content: '📍 '; }
+        .modal-body .desc { font-size: 1rem; color: #2d3436; line-height: 1.8; margin-bottom: 1.2rem; }
+        .modal-body .info-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 16px;
+            margin: 20px 0;
+        }
+        .modal-body .info-item {
+            background: #f8f9fa;
+            border-radius: 12px;
+            padding: 14px;
+            text-align: center;
+        }
+        .modal-body .info-item .label { font-size: 0.8rem; color: #636e72; }
+        .modal-body .info-item .value { font-size: 1rem; font-weight: 600; margin-top: 2px; }
+        .modal-body .tag-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-top: 16px;
+        }
+        .modal-body .tag-list span {
+            padding: 5px 14px;
+            background: #f0f0ff;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            color: #667eea;
+        }
+        .modal-close {
+            position: absolute;
+            top: 16px; right: 16px;
+            width: 40px; height: 40px;
+            border-radius: 50%;
+            border: none;
+            background: rgba(0,0,0,0.5);
+            color: #fff;
+            font-size: 1.3rem;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+        .modal-close:hover { background: rgba(0,0,0,0.7); }
+        .modal-img-wrap { position: relative; }
+
+        /* ===== Footer ===== */
+        footer {
+            text-align: center;
+            padding: 40px 24px;
+            color: #636e72;
+            font-size: 0.9rem;
+        }
+        footer a { color: #667eea; text-decoration: none; }
+
+        /* ===== Responsive ===== */
+        @media (max-width: 768px) {
+            .section { padding: 50px 16px; }
+            #random-section { padding: 50px 16px; }
+            .modal-body { padding: 20px; }
+            .modal-img { height: 200px; }
+            .hero-btns .btn { padding: 12px 24px; font-size: 1rem; }
+        }
+
+        /* ===== No results ===== */
+        .no-results {
+            text-align: center;
+            padding: 3rem;
+            color: #636e72;
+            font-size: 1.1rem;
+            grid-column: 1 / -1;
+        }
+    </style>
+</head>
+<body>
+
+<!-- ===== Hero ===== -->
+<section class="hero">
+    <div class="hero-content">
+        <h1>去<span>哪儿</span>玩</h1>
+        <p>世界这么大，总有一个地方在等你。不知道去哪？让我们的推荐帮你找到下一段旅程。</p>
+        <div class="hero-btns">
+            <a href="#random-section" class="btn btn-primary">🎲 随机推荐</a>
+            <a href="#explore" class="btn btn-outline">🌍 浏览目的地</a>
+        </div>
+    </div>
+    <div class="scroll-indicator">
+        往下探索
+        <span class="arrow"></span>
+    </div>
+</section>
+
+<!-- ===== Random Section ===== -->
+<section id="random-section">
+    <div class="section-title">
+        <h2>🎲 不知道去哪？摇一摇</h2>
+        <p>点击按钮，让命运帮你做选择</p>
+    </div>
+    <div class="random-box">
+        <button class="shake-btn" id="shakeBtn">🎲</button>
+        <div class="random-result" id="randomResult">
+            <div class="place" style="color:rgba(255,255,255,0.4);font-size:1.2rem;">点击上面的骰子开始</div>
+        </div>
+    </div>
+</section>
+
+<!-- ===== Explore Section ===== -->
+<section class="section" id="explore">
+    <div class="section-title">
+        <h2>🌍 精选目的地</h2>
+        <p>按你的喜好筛选，找到最合适的去处</p>
+    </div>
+
+    <div class="categories" id="categoryFilter">
+        <button class="category-btn active" data-cat="all">🏠 全部</button>
+        <button class="category-btn" data-cat="海滨">🌊 海滨</button>
+        <button class="category-btn" data-cat="山川">⛰️ 山川</button>
+        <button class="category-btn" data-cat="古城">🏛️ 古城</button>
+        <button class="category-btn" data-cat="都市">🌆 都市</button>
+        <button class="category-btn" data-cat="自然">🌿 自然</button>
+        <button class="category-btn" data-cat="美食">🍜 美食</button>
+    </div>
+
+    <div class="grid" id="destinationGrid"></div>
+</section>
+
+<!-- ===== Modal ===== -->
+<div class="modal-overlay" id="modal">
+    <div class="modal">
+        <div class="modal-img-wrap">
+            <img class="modal-img" id="modalImg" src="" alt="" />
+            <button class="modal-close" id="modalClose">✕</button>
+        </div>
+        <div class="modal-body">
+            <div class="name" id="modalName"></div>
+            <div class="location" id="modalLocation"></div>
+            <div class="desc" id="modalDesc"></div>
+            <div class="info-grid" id="modalInfo"></div>
+            <div class="tag-list" id="modalTags"></div>
+        </div>
+    </div>
+</div>
+
+<!-- ===== Footer ===== -->
+<footer>
+    <p>去哪儿玩 · 旅游推荐 · 世界那么大，一起去看看</p>
+</footer>
+
+<script>
+    // ===== Destination Data =====
+    const destinations = [
+        { id:1, name:'三亚', location:'海南', category:'海滨', rating:4.7,
+          brief:'中国最美的热带海滨城市，碧海蓝天，椰风海韵。',
+          desc:'三亚位于海南岛最南端，拥有绵延数百公里的海岸线。亚龙湾被誉为"天下第一湾"，蜈支洲岛是潜水胜地。这里年均气温25°C，是冬季避寒的绝佳选择。除了海滩，你还可以登上鹿回头俯瞰三亚全景，或去天涯海角感受浪漫传说。',
+          image:'https://images.unsplash.com/photo-1590523277543-a94c2e4eb39c?w=600&h=400&fit=crop',
+          bestTime:'10月-次年4月', days:'3-5天', budget:'中等',
+          tags:['海滩','游泳','潜水','度假','婚纱照'] },
+        { id:2, name:'成都', location:'四川', category:'美食', rating:4.8,
+          brief:'美食之都，熊猫故乡，来了就不想走的城市。',
+          desc:'成都是一座让人来了就不想走的城市。这里有全球最萌的大熊猫繁育基地，也有让人欲罢不能的火锅、串串、担担面。宽窄巷子保留了老成都的市井生活，春熙路则展现着现代都市的繁华。在人民公园的鹤鸣茶社喝一碗盖碗茶，感受成都人的慢生活哲学。',
+          image:'https://images.unsplash.com/photo-1599733589046-10c7f0ff91b3?w=600&h=400&fit=crop',
+          bestTime:'3月-6月, 9月-11月', days:'3-4天', budget:'经济',
+          tags:['火锅','熊猫','美食','茶馆','休闲'] },
+        { id:3, name:'丽江', location:'云南', category:'古城', rating:4.6,
+          brief:'世界文化遗产古城，小桥流水，纳西风情。',
+          desc:'丽江古城是世界文化遗产，八百年的历史在这里沉淀。四方街上纳西老人的打跳舞、大水车旁的石板路、古城里数不清的咖啡店和手鼓店，都让这里充满了文艺气息。玉龙雪山巍峨壮丽，泸沽湖清澈如镜，拉市海可以骑马划船。',
+          image:'https://images.unsplash.com/photo-1528164344705-47542687000d?w=600&h=400&fit=crop',
+          bestTime:'3月-5月, 9月-11月', days:'4-6天', budget:'经济',
+          tags:['古城','雪山','民宿','文艺','摄影'] },
+        { id:4, name:'张家界', location:'湖南', category:'山川', rating:4.7,
+          brief:'三千奇峰拔地起，阿凡达取景地的震撼之美。',
+          desc:'张家界的石英砂岩峰林地貌举世罕见，电影《阿凡达》中悬浮山的灵感就来自这里。天门山有世界最长的高山索道和惊险的玻璃栈道。大峡谷的玻璃桥横跨两山之间，脚下就是万丈深渊。武陵源景区将大自然的鬼斧神工展现得淋漓尽致。',
+          image:'https://images.unsplash.com/photo-1513415756790-2ac1db1297d0?w=600&h=400&fit=crop',
+          bestTime:'4月-6月, 9月-11月', days:'3-4天', budget:'经济',
+          tags:['奇峰','玻璃桥','索道','登山','摄影'] },
+        { id:5, name:'上海', location:'上海', category:'都市', rating:4.6,
+          brief:'魔都魅力，外滩万国建筑与浦东天际线的时空对话。',
+          desc:'上海是中国最国际化的都市，外滩的万国建筑群与陆家嘴的摩天大楼隔江相望。你可以登上东方明珠或上海中心俯瞰整座城市，也可以漫步在法租界的梧桐树下，钻进一家精致的咖啡馆。迪士尼乐园带来了童话般的欢乐，南京路则是购物天堂。',
+          image:'https://images.unsplash.com/photo-1537531383498-f739a2e2850b?w=600&h=400&fit=crop',
+          bestTime:'3月-5月, 10月-11月', days:'3-5天', budget:'中高',
+          tags:['都市','购物','迪士尼','外滩','美食'] },
+        { id:6, name:'桂林', location:'广西', category:'自然', rating:4.7,
+          brief:'桂林山水甲天下，漓江烟雨如诗如画。',
+          desc:'桂林山水甲天下，漓江两岸的喀斯特地貌构成了中国最经典的山水画卷。从桂林到阳朔的漓江游船是必体验项目，沿途九马画山、黄布倒影等景观令人叹为观止。阳朔西街充满异国情调，十里画廊适合骑行。龙脊梯田层层叠叠，四季景色各异。',
+          image:'https://images.unsplash.com/photo-1537531383498-f739a2e2850b?w=600&h=400&fit=crop',
+          bestTime:'4月-10月', days:'4-5天', budget:'经济',
+          tags:['漓江','喀斯特','骑行','梯田','竹筏'] },
+        { id:7, name:'厦门', location:'福建', category:'海滨', rating:4.5,
+          brief:'海上花园，鼓浪屿的琴声与厦大的青春气息。',
+          desc:'厦门是一座文艺与清新并存的海滨城市。鼓浪屿上遍布各国风格的百年建筑，日光岩顶可以俯瞰全岛。厦门大学被誉为中国最美大学，紧邻的白城沙滩是看日落的好地方。环岛路骑行、曾厝垵吃小吃、沙坡尾看艺术展，每一刻都很惬意。',
+          image:'https://images.unsplash.com/photo-1587397845856-e6cf49176c8b?w=600&h=400&fit=crop',
+          bestTime:'3月-5月, 10月-12月', days:'3-4天', budget:'中等',
+          tags:['鼓浪屿','文艺','海鲜','骑行','大学'] },
+        { id:8, name:'西安', location:'陕西', category:'古城', rating:4.7,
+          brief:'十三朝古都，兵马俑的震撼与不夜城的繁华。',
+          desc:'西安是中国的十三朝古都，拥有丰富的历史遗迹。兵马俑被誉为世界第八大奇迹，每一尊陶俑都独一无二。古城墙是中国保存最完整的古代城垣，可以骑车环游。大雁塔、华清池、钟鼓楼都是必到之地。晚上的大唐不夜城将盛唐气象重现眼前。',
+          image:'https://images.unsplash.com/photo-1606768666853-403c90c981ad?w=600&h=400&fit=crop',
+          bestTime:'3月-5月, 9月-11月', days:'3-4天', budget:'经济',
+          tags:['兵马俑','历史','美食','古城墙','夜景'] },
+        { id:9, name:'青岛', location:'山东', category:'海滨', rating:4.5,
+          brief:'红瓦绿树碧海蓝天，啤酒之都的浪漫海滨。',
+          desc:'青岛是一座拥有德国风情的海滨城市。八大关的万国建筑群被红瓦绿树环绕，栈桥是青岛的象征。崂山道教文化深厚，山海相连。在金沙滩上享受阳光，在啤酒街畅饮原浆啤酒，在教堂前拍照打卡——青岛的每一个角落都充满魅力。',
+          image:'https://images.unsplash.com/photo-1577940502491-2c64b1a2e0e6?w=600&h=400&fit=crop',
+          bestTime:'5月-10月', days:'3-4天', budget:'中等',
+          tags:['啤酒','海滩','德国建筑','海鲜','崂山'] },
+        { id:10, name:'九寨沟', location:'四川', category:'自然', rating:4.9,
+          brief:'人间仙境，翠海叠瀑的童话世界。',
+          desc:'九寨沟以翠海、叠瀑、彩林、雪峰、藏情、蓝冰"六绝"闻名。五花海如一块巨大的翡翠，诺日朗瀑布气势磅礴，五彩池色彩斑斓。秋天的九寨沟层林尽染，是摄影爱好者的天堂。这里的水是灵魂——清澈见底，颜色变幻莫测，被誉为"水景之王"。',
+          image:'https://images.unsplash.com/photo-1590691566903-692af25e33f0?w=600&h=400&fit=crop',
+          bestTime:'9月-10月', days:'3-4天', budget:'中等',
+          tags:['瀑布','彩林','湖泊','摄影','徒步'] },
+        { id:11, name:'大理', location:'云南', category:'古城', rating:4.6,
+          brief:'风花雪月，苍山洱海间的诗意生活。',
+          desc:'大理有"风花雪月"四景——下关风、上关花、苍山雪、洱海月。洱海环湖骑行是来大理必做的事，沿途的白族村落和田园风光让人心旷神怡。大理古城保留了明清时期的棋盘式格局，人民路的小店和夜市充满生活气息。崇圣寺三塔是大理的标志。',
+          image:'https://images.unsplash.com/photo-1545569341-9eb8b30979d9?w=600&h=400&fit=crop',
+          bestTime:'3月-5月, 9月-11月', days:'4-6天', budget:'经济',
+          tags:['洱海','苍山','白族','骑行','慢生活'] },
+        { id:12, name:'重庆', location:'重庆', category:'美食', rating:4.6,
+          brief:'8D魔幻城市，火锅之都的麻辣诱惑。',
+          desc:'重庆被称为8D魔幻城市，轻轨穿楼、空中天桥、层层叠叠的建筑让导航都失灵。重庆火锅是这座城市的名片，九宫格老火锅越煮越香。洪崖洞的吊脚楼灯光璀璨，仿佛千与千寻的世界。长江索道横跨两岸，南山一棵树观景台可以俯瞰整个渝中半岛。',
+          image:'https://images.unsplash.com/photo-1599733589046-10c7f0ff91b3?w=600&h=400&fit=crop',
+          bestTime:'3月-5月, 9月-11月', days:'3-4天', budget:'经济',
+          tags:['火锅','夜景','轻轨','洪崖洞','麻辣'] },
+        { id:13, name:'黄山', location:'安徽', category:'山川', rating:4.8,
+          brief:'五岳归来不看山，黄山归来不看岳。',
+          desc:'黄山以奇松、怪石、云海、温泉、冬雪"五绝"闻名。迎客松是黄山的标志，光明顶是看日出的最佳地点。黄山的云海如梦似幻，有时在山顶行走犹如云端漫步。西海大峡谷壮丽深邃，飞来石充满传奇色彩。冬季的黄山银装素裹，雾凇晶莹剔透。',
+          image:'https://images.unsplash.com/photo-1469460344726-5c8cab252a7e?w=600&h=400&fit=crop',
+          bestTime:'3月-5月, 9月-11月', days:'3-4天', budget:'中等',
+          tags:['日出','云海','奇松','登山','摄影'] },
+        { id:14, name:'广州', location:'广东', category:'美食', rating:4.5,
+          brief:'食在广州，早茶文化发源地的味觉盛宴。',
+          desc:'广州是一座美食之城，也是中国最早开放的通商口岸之一。广州早茶的虾饺、烧卖、叉烧包、肠粉让人流连忘返。登上广州塔可以俯瞰珠江新城的天际线，沙面岛保留着欧陆风情建筑，北京路步行街下是千年古道遗址。长隆欢乐世界是家庭游的好去处。',
+          image:'https://images.unsplash.com/photo-1513639776629-7b61b0ac8cb4?w=600&h=400&fit=crop',
+          bestTime:'10月-12月, 3月-4月', days:'3-4天', budget:'中等',
+          tags:['早茶','美食','广州塔','购物','粤文化'] },
+        { id:15, name:'拉萨', location:'西藏', category:'古城', rating:4.7,
+          brief:'日光之城，离天堂最近的雪域圣城。',
+          desc:'拉萨是一座充满信仰的城市。布达拉宫矗立在红山之上，金碧辉煌。大昭寺前磕长头的信徒让人感受到信仰的力量。八廓街转经的人群络绎不绝，甜茶馆里充满了市井烟火气。纳木错湖面如镜，羊卓雍措蓝得不可思议。这是一座洗净心灵的城市。',
+          image:'https://images.unsplash.com/photo-1559634968-5ab6b1c3be38?w=600&h=400&fit=crop',
+          bestTime:'6月-9月', days:'5-7天', budget:'中高',
+          tags:['布达拉宫','高原','寺庙','朝圣','纳木错'] },
+        { id:16, name:'杭州', location:'浙江', category:'自然', rating:4.7,
+          brief:'上有天堂下有苏杭，西湖烟雨最江南。',
+          desc:'杭州因西湖而闻名天下。断桥残雪、苏堤春晓、雷峰夕照、三潭印月——西湖十景每一处都充满诗意。灵隐寺是千年古刹，龙井茶园可以品茶赏景。西溪湿地是城市中的绿肺，京杭大运河见证了千年漕运历史。杭州是一座将自然与人文完美融合的城市。',
+          image:'https://images.unsplash.com/photo-1599571234907-29ed5d1328f8?w=600&h=400&fit=crop',
+          bestTime:'3月-5月, 9月-11月', days:'3-4天', budget:'中等',
+          tags:['西湖','龙井','寺庙','游船','园林'] },
+        { id:17, name:'哈尔滨', location:'黑龙江', category:'都市', rating:4.4,
+          brief:'冰城夏都，冰雪大世界的梦幻王国。',
+          desc:'哈尔滨是中国的冰雪之都。冬天的冰雪大世界是童话般的存在，冰雕雪雕在灯光下璀璨夺目。中央大街的欧式建筑让人仿佛置身欧洲，索菲亚教堂是哈尔滨的地标。松花江上各种冰上活动乐趣无穷。夏天来这里避暑，感受"冰城夏都"的双面魅力。',
+          image:'https://images.unsplash.com/photo-1590523277543-a94c2e4eb39c?w=600&h=400&fit=crop',
+          bestTime:'1月-2月（冰雪）, 6月-8月（避暑）', days:'3-5天', budget:'经济',
+          tags:['冰雕','滑雪','俄式建筑','中央大街','避暑'] },
+        { id:18, name:'稻城亚丁', location:'四川', category:'山川', rating:4.8,
+          brief:'蓝色星球上的最后一片净土，水蓝色星球上的最后一片净土。',
+          desc:'稻城亚丁被誉为"水蓝色星球上的最后一片净土"。三座神山——仙乃日、央迈勇、夏诺多吉巍峨耸立，牛奶海、五色海如宝石般镶嵌在雪山之间。洛绒牛场是拍摄央迈勇的最佳位置。这里的海拔在4000米以上，虽然路途艰辛，但风景绝对值得。',
+          image:'https://images.unsplash.com/photo-1590691566903-692af25e33f0?w=600&h=400&fit=crop',
+          bestTime:'5月-6月, 9月-10月', days:'5-7天', budget:'中等',
+          tags:['雪山','高原','徒步','摄影','秘境'] },
+        { id:19, name:'威海', location:'山东', category:'海滨', rating:4.5,
+          brief:'最干净的海滨城市，天鹅湖与海草房的童话。',
+          desc:'威海是中国最干净的海滨城市之一。刘公岛是中国近代史的重要见证，成山头被誉为"中国的好望角"。荣成天鹅湖每年冬天有上万只天鹅来此过冬，海草房是胶东沿海的传统民居。威海国际海水浴场沙质细腻，环海路是最美的自驾线路之一。',
+          image:'https://images.unsplash.com/photo-1587397845856-e6cf49176c8b?w=600&h=400&fit=crop',
+          bestTime:'5月-10月', days:'3-4天', budget:'经济',
+          tags:['海滩','天鹅','海鲜','自驾','干净'] },
+        { id:20, name:'南京', location:'江苏', category:'古城', rating:4.6,
+          brief:'六朝古都，梧桐树下读历史。',
+          desc:'南京是中国四大古都之一，有"六朝古都"之称。中山陵气势恢宏，明孝陵是明朝开国皇帝朱元璋的陵墓。夫子庙秦淮河畔夜景迷人，老门东的巷弄里藏着各种小吃。南京博物院是中国三大博物馆之一。秋天的栖霞山红叶似火，美龄宫的"项链"景观独特。',
+          image:'https://images.unsplash.com/photo-1606768666853-403c90c981ad?w=600&h=400&fit=crop',
+          bestTime:'3月-5月, 9月-11月', days:'3-4天', budget:'经济',
+          tags:['历史','梧桐','秦淮河','博物馆','美食'] },
+        { id:21, name:'呼伦贝尔', location:'内蒙古', category:'自然', rating:4.7,
+          brief:'中国最美的草原，风吹草低见牛羊。',
+          desc:'呼伦贝尔大草原是中国最美的草原。一望无际的绿色地毯上，牛羊如珍珠般散落。莫日格勒河蜿蜒曲折，额尔古纳湿地是亚洲最大的湿地。你可以住进蒙古包，喝下马酒、吃烤全羊，参加篝火晚会。秋天的呼伦贝尔被金黄覆盖，是摄影的黄金季节。',
+          image:'https://images.unsplash.com/photo-1590691566903-692af25e33f0?w=600&h=400&fit=crop',
+          bestTime:'6月-8月（夏季）, 9月-10月（秋季）', days:'5-7天', budget:'中等',
+          tags:['草原','骑马','蒙古包','星空','烤全羊'] },
+        { id:22, name:'敦煌', location:'甘肃', category:'古城', rating:4.6,
+          brief:'大漠深处的艺术宝库，丝绸之路上的明珠。',
+          desc:'敦煌是古丝绸之路上的重要节点。莫高窟被誉为"东方卢浮宫"，壁画和彩塑跨越千年。鸣沙山月牙泉是沙漠奇观，沙漠与泉水共存。玉门关和阳关见证了古丝路的繁华。在戈壁滩上看星空，在大漠中骑骆驼，感受穿越时空的苍凉之美。',
+          image:'https://images.unsplash.com/photo-1606768666853-403c90c981ad?w=600&h=400&fit=crop',
+          bestTime:'5月-10月', days:'3-4天', budget:'中等',
+          tags:['莫高窟','沙漠','丝绸之路','壁画','星空'] },
+        { id:23, name:'武汉', location:'湖北', category:'都市', rating:4.4,
+          brief:'九省通衢，江城樱花与过早文化的烟火气。',
+          desc:'武汉是一座充满江湖气的城市。黄鹤楼是江南三大名楼之一，登楼可观长江壮景。武汉大学的樱花闻名全国，每年三月游人如织。户部巷的"过早"——热干面、豆皮、面窝、蛋酒——让你从早吃到晚。东湖比西湖还大，可以骑行一整天。',
+          image:'https://images.unsplash.com/photo-1537531383498-f739a2e2850b?w=600&h=400&fit=crop',
+          bestTime:'3月-4月（樱花）, 9月-11月', days:'3-4天', budget:'经济',
+          tags:['樱花','黄鹤楼','过早','长江','东湖'] },
+        { id:24, name:'香港', location:'香港', category:'都市', rating:4.6,
+          brief:'东方之珠，维港夜景与购物天堂的繁华。',
+          desc:'香港是一座中西合璧的国际都市。维多利亚港的"幻彩咏香江"灯光秀是世界最大的灯光音乐汇演。太平山顶可以俯瞰维港全景。迪士尼乐园和海洋公园是亲子游的好去处。旺角、铜锣湾是购物天堂，兰桂坊是夜生活的代名词。茶餐厅的菠萝油和丝袜奶茶是香港味道。',
+          image:'https://images.unsplash.com/photo-1537531383498-f739a2e2850b?w=600&h=400&fit=crop',
+          bestTime:'10月-11月, 12月-2月', days:'4-5天', budget:'高',
+          tags:['维港','迪士尼','购物','茶餐厅','夜景'] },
+    ];
+
+    // ===== Render Grid =====
+    const grid = document.getElementById('destinationGrid');
+    const categoryBtns = document.querySelectorAll('.category-btn');
+    let currentCat = 'all';
+
+    function renderGrid(cat) {
+        const filtered = cat === 'all'
+            ? destinations
+            : destinations.filter(d => d.category === cat);
+
+        if (filtered.length === 0) {
+            grid.innerHTML = '<div class="no-results">没有找到匹配的目的地 🤔</div>';
+            return;
+        }
+
+        grid.innerHTML = filtered.map((d, i) => `
+            <div class="card" style="animation-delay:${i*0.05}s" data-id="${d.id}">
+                <img class="card-img" src="${d.image}" alt="${d.name}" loading="lazy"
+                     onerror="this.style.display='none'" />
+                <div class="card-body">
+                    <div class="name">${d.name}</div>
+                    <div class="location">${d.location}</div>
+                    <div class="brief">${d.brief}</div>
+                    <div class="card-footer">
+                        <span class="tag">${d.category}</span>
+                        <span class="rating">★ ${d.rating}</span>
+                    </div>
+                </div>
+            </div>
+        `).join('');
+
+        // Click to open modal
+        grid.querySelectorAll('.card').forEach(el => {
+            el.addEventListener('click', () => {
+                const id = parseInt(el.dataset.id);
+                const dest = destinations.find(d => d.id === id);
+                if (dest) openModal(dest);
+            });
+        });
+    }
+
+    // ===== Category Filter =====
+    categoryBtns.forEach(btn => {
+        btn.addEventListener('click', () => {
+            categoryBtns.forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            currentCat = btn.dataset.cat;
+            renderGrid(currentCat);
+        });
+    });
+
+    // ===== Random Pick =====
+    const shakeBtn = document.getElementById('shakeBtn');
+    const randomResult = document.getElementById('randomResult');
+
+    shakeBtn.addEventListener('click', () => {
+        shakeBtn.classList.remove('spinning');
+        // force reflow
+        void shakeBtn.offsetWidth;
+        shakeBtn.classList.add('spinning');
+
+        setTimeout(() => {
+            const pick = destinations[Math.floor(Math.random() * destinations.length)];
+            randomResult.innerHTML = `
+                <div class="place">${pick.name}</div>
+                <div class="desc">${pick.brief}</div>
+                <span class="tag">${pick.location} · ${pick.category} · ★ ${pick.rating}</span>
+            `;
+            shakeBtn.classList.remove('spinning');
+        }, 600);
+    });
+
+    // ===== Modal =====
+    const modal = document.getElementById('modal');
+    const modalImg = document.getElementById('modalImg');
+    const modalName = document.getElementById('modalName');
+    const modalLocation = document.getElementById('modalLocation');
+    const modalDesc = document.getElementById('modalDesc');
+    const modalInfo = document.getElementById('modalInfo');
+    const modalTags = document.getElementById('modalTags');
+
+    function openModal(d) {
+        modalImg.src = d.image;
+        modalImg.alt = d.name;
+        modalName.textContent = d.name;
+        modalLocation.textContent = d.location;
+        modalDesc.textContent = d.desc;
+        modalInfo.innerHTML = `
+            <div class="info-item"><div class="label">最佳季节</div><div class="value">${d.bestTime}</div></div>
+            <div class="info-item"><div class="label">建议天数</div><div class="value">${d.days}</div></div>
+            <div class="info-item"><div class="label">预算</div><div class="value">${d.budget}</div></div>
+            <div class="info-item"><div class="label">评分</div><div class="value">★ ${d.rating}</div></div>
+        `;
+        modalTags.innerHTML = d.tags.map(t => `<span>#${t}</span>`).join('');
+        modal.classList.add('open');
+        document.body.style.overflow = 'hidden';
+    }
+
+    function closeModal() {
+        modal.classList.remove('open');
+        document.body.style.overflow = '';
+    }
+
+    document.getElementById('modalClose').addEventListener('click', closeModal);
+    modal.addEventListener('click', (e) => { if (e.target === modal) closeModal(); });
+    document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeModal(); });
+
+    // ===== Init =====
+    renderGrid('all');
+</script>
+</body>
+</html>

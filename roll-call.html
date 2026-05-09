@@ -1,0 +1,503 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>课堂点名系统</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, "Microsoft YaHei", sans-serif;
+    background: #f0f2f5;
+    color: #333;
+    min-height: 100vh;
+  }
+  .container { max-width: 780px; margin: 0 auto; padding: 20px; }
+
+  /* 头部 */
+  .header {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: #fff;
+    border-radius: 16px;
+    padding: 28px 24px;
+    margin-bottom: 20px;
+    text-align: center;
+  }
+  .header h1 { font-size: 26px; font-weight: 700; letter-spacing: 2px; }
+  .header p { opacity: .85; margin-top: 6px; font-size: 14px; }
+
+  /* 控制栏 - 始终可见 */
+  .toolbar {
+    background: #fff;
+    border-radius: 12px;
+    padding: 16px 20px;
+    margin-bottom: 16px;
+    box-shadow: 0 2px 8px rgba(0,0,0,.06);
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    align-items: center;
+  }
+  .toolbar .spacer { flex: 1; }
+  .badge {
+    font-size: 13px;
+    background: #eef;
+    color: #667eea;
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-weight: 600;
+  }
+
+  /* 按钮 */
+  .btn {
+    padding: 8px 20px;
+    border: none;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all .2s;
+    white-space: nowrap;
+  }
+  .btn:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(0,0,0,.15); }
+  .btn:active { transform: scale(.96); }
+  .btn-primary  { background: #667eea; color: #fff; }
+  .btn-success  { background: #48bb78; color: #fff; }
+  .btn-danger   { background: #f56565; color: #fff; }
+  .btn-warning  { background: #ed8936; color: #fff; }
+  .btn-outline  { background: #fff; color: #667eea; border: 2px solid #667eea; padding: 6px 18px; }
+  .btn-sm       { padding: 5px 14px; font-size: 13px; }
+  .btn:disabled { opacity: .5; cursor: not-allowed; transform: none; }
+
+  /* 点名大卡片 */
+  .call-card {
+    background: #fff;
+    border-radius: 16px;
+    padding: 40px 20px;
+    text-align: center;
+    box-shadow: 0 4px 20px rgba(0,0,0,.08);
+    margin-bottom: 20px;
+  }
+  .call-card .big-name {
+    font-size: 56px;
+    font-weight: 800;
+    color: #667eea;
+    margin: 16px 0;
+    min-height: 80px;
+    line-height: 1.3;
+    word-break: break-all;
+  }
+  .call-card .big-name.rolling {
+    animation: flicker .1s infinite alternate;
+    color: #764ba2;
+  }
+  @keyframes flicker {
+    0% { transform: scale(1); }
+    100% { transform: scale(1.02); }
+  }
+  .call-card .hint { color: #999; font-size: 14px; }
+
+  /* 花名册 */
+  .roster {
+    background: #fff;
+    border-radius: 12px;
+    padding: 20px;
+    box-shadow: 0 2px 8px rgba(0,0,0,.06);
+    margin-bottom: 20px;
+  }
+  .roster-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 14px;
+  }
+  .roster-header h2 { font-size: 18px; }
+
+  .student-item {
+    display: flex;
+    align-items: center;
+    padding: 10px 12px;
+    border-radius: 8px;
+    margin-bottom: 4px;
+    transition: background .15s;
+    gap: 12px;
+  }
+  .student-item:hover { background: #f7f8fc; }
+  .student-item .num {
+    width: 28px;
+    color: #aaa;
+    font-size: 13px;
+    text-align: right;
+  }
+  .student-item .name {
+    flex: 1;
+    font-size: 16px;
+    font-weight: 500;
+  }
+  .student-item .status {
+    font-size: 13px;
+    padding: 2px 10px;
+    border-radius: 12px;
+    font-weight: 500;
+  }
+  .status-present { color: #276749; background: #e6fffa; }
+  .status-absent  { color: #9b2c2c; background: #fff5f5; }
+  .status-null    { color: #999; }
+
+  .status-bar {
+    height: 6px;
+    background: #e2e8f0;
+    border-radius: 3px;
+    margin: 14px 0 4px;
+    overflow: hidden;
+  }
+  .status-bar-inner {
+    height: 100%;
+    background: linear-gradient(90deg, #48bb78, #667eea);
+    border-radius: 3px;
+    transition: width .3s;
+  }
+  .stats-text { font-size: 13px; color: #888; text-align: right; }
+
+  /* 添加学生 */
+  .add-row {
+    display: flex;
+    gap: 8px;
+    margin-top: 12px;
+  }
+  .add-row input {
+    flex: 1;
+    padding: 8px 14px;
+    border: 2px solid #e2e8f0;
+    border-radius: 8px;
+    font-size: 14px;
+    outline: none;
+    transition: border .2s;
+  }
+  .add-row input:focus { border-color: #667eea; }
+
+  /* 历史记录折叠 */
+  .history-toggle {
+    text-align: center;
+    margin-top: 10px;
+  }
+  .history-toggle button {
+    background: none;
+    border: none;
+    color: #667eea;
+    font-size: 13px;
+    cursor: pointer;
+    padding: 6px 12px;
+  }
+  .history-toggle button:hover { text-decoration: underline; }
+  .history-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+    margin-top: 10px;
+  }
+  .history-table th, .history-table td {
+    text-align: center;
+    padding: 6px 4px;
+    border-bottom: 1px solid #f0f0f0;
+  }
+  .history-table th { color: #888; font-weight: 600; }
+  .history-table .dot-p { color: #48bb78; }
+  .history-table .dot-a { color: #f56565; }
+
+  @media (max-width: 500px) {
+    .container { padding: 12px; }
+    .call-card .big-name { font-size: 36px; min-height: 56px; }
+    .toolbar { gap: 6px; }
+    .btn { padding: 6px 14px; font-size: 13px; }
+  }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <!-- 头部 -->
+  <div class="header">
+    <h1>🎒 课堂点名系统</h1>
+    <p>随机点名 · 出勤记录 · 一键统计</p>
+  </div>
+
+  <!-- 点名卡片 -->
+  <div class="call-card">
+    <div class="hint" id="callHint">点击下方按钮开始点名</div>
+    <div class="big-name" id="bigName">—</div>
+    <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap;">
+      <button class="btn btn-primary" id="btnCall" onclick="startCall()">🎲 随机点名</button>
+      <button class="btn btn-success" id="btnPresent" onclick="markPresent()" disabled>✅ 到课</button>
+      <button class="btn btn-danger"  id="btnAbsent"  onclick="markAbsent()" disabled>❌ 缺课</button>
+    </div>
+  </div>
+
+  <!-- 工具栏 -->
+  <div class="toolbar">
+    <span class="badge" id="studentCount">0 人</span>
+    <span class="badge" style="background:#e6fffa;color:#276749;" id="statsPresent">到课 0</span>
+    <span class="badge" style="background:#fff5f5;color:#9b2c2c;" id="statsAbsent">缺课 0</span>
+    <span class="spacer"></span>
+    <button class="btn btn-warning btn-sm" onclick="resetAttendance()" title="重置所有出勤状态">🔄 重置</button>
+    <button class="btn btn-sm btn-outline" onclick="exportData()">📋 导出</button>
+  </div>
+
+  <!-- 花名册 -->
+  <div class="roster">
+    <div class="roster-header">
+      <h2>📖 花名册</h2>
+      <button class="btn btn-sm btn-primary" onclick="addSampleStudents()">+ 添加示例</button>
+    </div>
+    <div id="studentList"></div>
+    <div class="add-row">
+      <input type="text" id="newNameInput" placeholder="输入学生姓名，回车添加" onkeydown="if(event.key==='Enter')addStudent()">
+      <button class="btn btn-primary" onclick="addStudent()">添加</button>
+    </div>
+  </div>
+
+  <!-- 历史记录 -->
+  <div class="roster">
+    <div class="history-toggle">
+      <button onclick="toggleHistory()">📜 查看点名历史</button>
+    </div>
+    <div id="historyPanel" style="display:none;">
+      <table class="history-table">
+        <thead><tr><th>轮次</th><th>姓名</th><th>结果</th><th>时间</th></tr></thead>
+        <tbody id="historyBody"></tbody>
+      </table>
+      <div style="text-align:center;margin-top:10px;">
+        <button class="btn btn-sm btn-outline" onclick="clearHistory()">清空历史</button>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+// ─── 数据 ───────────────────────────────
+const DEFAULT = ['赵灵儿','李逍遥','林月如','阿奴','唐钰','酒剑仙','剑圣','拜月','巫后','石长老'];
+let students = [];
+let callLog   = [];   // { name, status, time }
+let rolling   = false;
+let rollTimer = null;
+let currentName = null;
+
+// ─── 存储 ───────────────────────────────
+function loadData() {
+  try {
+    const raw = localStorage.getItem('rollcall_data');
+    if (raw) {
+      const d = JSON.parse(raw);
+      students = d.students || [];
+      callLog   = d.callLog || [];
+      return;
+    }
+  } catch(e) {}
+  students = DEFAULT.map((n,i) => ({ id:i, name:n, status:null }));
+  callLog = [];
+  saveData();
+}
+function saveData() {
+  localStorage.setItem('rollcall_data', JSON.stringify({ students, callLog }));
+}
+
+// ─── 渲染 ───────────────────────────────
+function renderAll() {
+  renderList();
+  renderStats();
+  document.getElementById('studentCount').textContent = students.length + ' 人';
+}
+
+function renderList() {
+  const el = document.getElementById('studentList');
+  if (!students.length) {
+    el.innerHTML = '<div style="text-align:center;color:#bbb;padding:20px;">还没有学生，在上方添加吧</div>';
+    return;
+  }
+  el.innerHTML = students.map(s => `
+    <div class="student-item" data-id="${s.id}">
+      <span class="num">${s.id+1}</span>
+      <span class="name">${s.name}</span>
+      <span class="status ${s.status === 'present' ? 'status-present' : s.status === 'absent' ? 'status-absent' : 'status-null'}">
+        ${s.status === 'present' ? '✓ 到课' : s.status === 'absent' ? '✗ 缺课' : '—'}
+      </span>
+      <button class="btn btn-sm btn-danger" onclick="removeStudent(${s.id})" style="padding:2px 10px;">✕</button>
+    </div>
+  `).join('');
+}
+
+function renderStats() {
+  const total = students.length;
+  const present = students.filter(s => s.status === 'present').length;
+  const absent  = students.filter(s => s.status === 'absent').length;
+  const called  = present + absent;
+  document.getElementById('statsPresent').textContent = `到课 ${present}`;
+  document.getElementById('statsAbsent').textContent  = `缺课 ${absent}`;
+  // 底部进度条
+  let bar = document.querySelector('.status-bar');
+  if (!bar) {
+    const roster = document.querySelector('.roster');
+    bar = document.createElement('div'); bar.className = 'status-bar';
+    bar.innerHTML = '<div class="status-bar-inner" id="statusBarInner"></div>';
+    const st = document.createElement('div'); st.className = 'stats-text'; st.id = 'statsText';
+    roster.appendChild(bar); roster.appendChild(st);
+  }
+  const pct = total ? Math.round(called/total*100) : 0;
+  document.getElementById('statusBarInner').style.width = pct + '%';
+  document.getElementById('statsText').textContent = `已点名 ${called}/${total} 人 (${pct}%)`;
+}
+
+function renderBigName(name) {
+  document.getElementById('bigName').textContent = name || '—';
+}
+function setHint(t) {
+  document.getElementById('callHint').textContent = t;
+}
+
+// ─── 点名核心 ───────────────────────────
+function startCall() {
+  if (students.length === 0) {
+    setHint('⚠️ 花名册是空的，先添加学生吧');
+    return;
+  }
+  if (rolling) {
+    stopRoll(true);
+    return;
+  }
+  // 开始滚动
+  rolling = true;
+  document.getElementById('btnCall').textContent = '⏹ 停下';
+  document.getElementById('btnPresent').disabled = true;
+  document.getElementById('btnAbsent').disabled  = true;
+  document.getElementById('bigName').classList.add('rolling');
+  setHint('点击「停下」确定人选');
+  rollTimer = setInterval(() => {
+    const r = students[Math.floor(Math.random() * students.length)];
+    renderBigName(r.name);
+  }, 60);
+}
+
+function stopRoll(canRepeat) {
+  rolling = false;
+  clearInterval(rollTimer); rollTimer = null;
+  document.getElementById('bigName').classList.remove('rolling');
+  document.getElementById('btnCall').textContent = '🎲 随机点名';
+  currentName = document.getElementById('bigName').textContent;
+  if (currentName === '—') return;
+  document.getElementById('btnPresent').disabled = false;
+  document.getElementById('btnAbsent').disabled  = false;
+  setHint(`「${currentName}」到课还是缺课？`);
+}
+
+function markPresent() {
+  finishCall('present');
+}
+function markAbsent() {
+  finishCall('absent');
+}
+function finishCall(status) {
+  if (!currentName) return;
+  const s = students.find(x => x.name === currentName);
+  if (s) s.status = status;
+  const time = new Date().toLocaleTimeString();
+  callLog.push({ name:currentName, status, time });
+  saveData(); renderAll();
+  document.getElementById('btnPresent').disabled = true;
+  document.getElementById('btnAbsent').disabled  = true;
+  setHint(`已记录「${currentName}」${status === 'present' ? '到课 ✓' : '缺课 ✗'}  — 继续点名吧`);
+  currentName = null;
+}
+
+// ─── 学生管理 ───────────────────────────
+function addStudent() {
+  const inp = document.getElementById('newNameInput');
+  const name = inp.value.trim();
+  if (!name) return;
+  if (students.some(s => s.name === name)) {
+    setHint(`⚠️ 「${name}」已存在`);
+    return;
+  }
+  students.push({ id:Date.now(), name, status:null });
+  inp.value = '';
+  saveData(); renderAll();
+  setHint(`已添加「${name}」`);
+}
+
+function removeStudent(id) {
+  const s = students.find(x => x.id === id);
+  if (!s) return;
+  students = students.filter(x => x.id !== id);
+  saveData(); renderAll();
+  setHint(`已移除「${s.name}」`);
+}
+
+function addSampleStudents() {
+  const existing = new Set(students.map(s => s.name));
+  const newbies = DEFAULT.filter(n => !existing.has(n));
+  if (!newbies.length) { setHint('示例学生已存在'); return; }
+  newbies.forEach(name => students.push({ id:Date.now()+Math.random(), name, status:null }));
+  saveData(); renderAll();
+  setHint(`添加了 ${newbies.length} 位示例学生`);
+}
+
+function resetAttendance() {
+  if (!confirm('重置所有出勤状态？')) return;
+  students.forEach(s => s.status = null);
+  saveData(); renderAll();
+  setHint('已重置所有出勤状态');
+}
+
+// ─── 导出 ───────────────────────────────
+function exportData() {
+  const lines = ['姓名,状态'];
+  students.forEach(s => lines.push(`${s.name},${s.status === 'present' ? '到课' : s.status === 'absent' ? '缺课' : '未点'}`));
+  const csv = lines.join('\n');
+  const blob = new Blob(['﻿'+csv], { type:'text/csv;charset=utf-8;' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = '点名记录.csv';
+  a.click();
+  URL.revokeObjectURL(a.href);
+  setHint('已导出 CSV，可用 Excel 打开');
+}
+
+// ─── 历史 ───────────────────────────────
+function toggleHistory() {
+  const p = document.getElementById('historyPanel');
+  p.style.display = p.style.display === 'none' ? 'block' : 'none';
+  renderHistory();
+}
+function renderHistory() {
+  const tbody = document.getElementById('historyBody');
+  if (!callLog.length) {
+    tbody.innerHTML = '<tr><td colspan="4" style="color:#bbb;padding:20px;">暂无记录</td></tr>';
+    return;
+  }
+  tbody.innerHTML = callLog.map((r,i) => `
+    <tr>
+      <td>${i+1}</td>
+      <td>${r.name}</td>
+      <td class="${r.status === 'present' ? 'dot-p' : 'dot-a'}">${r.status === 'present' ? '✓' : '✗'}</td>
+      <td>${r.time}</td>
+    </tr>
+  `).reverse().join('');
+}
+function clearHistory() {
+  if (!confirm('清空所有点名历史？')) return;
+  callLog = [];
+  saveData();
+  renderHistory();
+  setHint('历史已清空');
+}
+
+// ─── 启动 ───────────────────────────────
+loadData();
+renderAll();
+setHint('准备好了，开始点名吧 🎯');
+
+// 点名前自动存档
+window.addEventListener('beforeunload', saveData);
+</script>
+</body>
+</html>

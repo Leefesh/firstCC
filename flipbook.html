@@ -1,0 +1,696 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>🎬 Flipbook 动画手翻书</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, "Microsoft YaHei", sans-serif;
+    background: #1a1a2e;
+    color: #eee;
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+  }
+  .app {
+    background: #16213e;
+    border-radius: 20px;
+    padding: 24px;
+    box-shadow: 0 20px 60px rgba(0,0,0,.5);
+    max-width: 860px;
+    width: 100%;
+    margin: 20px;
+  }
+
+  .header {
+    text-align: center;
+    margin-bottom: 20px;
+  }
+  .header h1 { font-size: 22px; letter-spacing: 2px; }
+  .header p { font-size: 13px; color: #888; margin-top: 4px; }
+
+  /* ─── 主区域 ─── */
+  .main-area {
+    display: flex;
+    gap: 20px;
+    align-items: flex-start;
+  }
+  @media (max-width:640px) {
+    .main-area { flex-direction: column; align-items: center; }
+  }
+
+  /* 画板 */
+  .canvas-wrap {
+    background: #fff;
+    border-radius: 12px;
+    padding: 8px;
+    flex-shrink: 0;
+    box-shadow: 0 8px 30px rgba(0,0,0,.3);
+    position: relative;
+  }
+  canvas#drawCanvas {
+    display: block;
+    width: 400px;
+    height: 300px;
+    border-radius: 6px;
+    cursor: crosshair;
+    touch-action: none;
+  }
+  .page-label {
+    position: absolute;
+    bottom: 16px;
+    right: 16px;
+    background: rgba(0,0,0,.5);
+    color: #fff;
+    padding: 3px 10px;
+    border-radius: 6px;
+    font-size: 12px;
+    pointer-events: none;
+  }
+
+  /* 右侧控制 */
+  .side {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .filmstrip {
+    background: #0f3460;
+    border-radius: 10px;
+    padding: 12px;
+    margin-bottom: 14px;
+  }
+  .filmstrip-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+  }
+  .filmstrip-header span { font-size: 13px; color: #aaa; }
+  .filmstrip-scroll {
+    display: flex;
+    gap: 6px;
+    overflow-x: auto;
+    padding-bottom: 6px;
+    scrollbar-width: thin;
+    scrollbar-color: #667eea #0f3460;
+  }
+  .filmstrip-scroll::-webkit-scrollbar { height: 4px; }
+  .filmstrip-scroll::-webkit-scrollbar-thumb { background: #667eea; border-radius: 4px; }
+
+  .thumb {
+    flex-shrink: 0;
+    width: 72px;
+    height: 54px;
+    background: #1a1a2e;
+    border-radius: 6px;
+    border: 2px solid transparent;
+    cursor: pointer;
+    position: relative;
+    transition: border .15s;
+    overflow: hidden;
+  }
+  .thumb canvas { width: 100%; height: 100%; display: block; }
+  .thumb.active { border-color: #667eea; }
+  .thumb .thumb-num {
+    position: absolute;
+    top: 2px; left: 4px;
+    font-size: 10px;
+    color: #fff;
+    background: rgba(0,0,0,.5);
+    padding: 0 4px; border-radius: 3px;
+  }
+  .thumb .thumb-del {
+    position: absolute;
+    top: 2px; right: 2px;
+    width: 16px; height: 16px;
+    background: rgba(255,0,0,.7);
+    color: #fff;
+    border: none;
+    border-radius: 50%;
+    font-size: 10px;
+    cursor: pointer;
+    display: none;
+    line-height: 16px;
+    text-align: center;
+    padding: 0;
+  }
+  .thumb:hover .thumb-del { display: block; }
+
+  /* 按钮 */
+  .btn-row {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-bottom: 10px;
+  }
+  .btn {
+    padding: 8px 18px;
+    border: none;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all .2s;
+  }
+  .btn:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(0,0,0,.3); }
+  .btn:active { transform: scale(.96); }
+  .btn-primary { background: #667eea; color: #fff; }
+  .btn-success { background: #48bb78; color: #fff; }
+  .btn-danger  { background: #e53e3e; color: #fff; }
+  .btn-warning { background: #ed8936; color: #fff; }
+  .btn-outline { background: transparent; color: #667eea; border: 2px solid #667eea; }
+  .btn-sm { padding: 5px 12px; font-size: 12px; }
+
+  .tools-row {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    flex-wrap: wrap;
+  }
+  .tools-row label { font-size: 13px; color: #aaa; }
+  .tools-row input[type="color"] {
+    width: 32px; height: 32px; border: none; border-radius: 6px; cursor: pointer;
+    background: none; padding: 0;
+  }
+  .tools-row input[type="range"] {
+    width: 80px; accent-color: #667eea;
+  }
+  .tools-row .color-preview {
+    width: 24px; height: 24px; border-radius: 50%; border: 2px solid #555;
+  }
+
+  /* 播放 */
+  .play-bar {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    flex-wrap: wrap;
+    padding: 10px 0;
+    border-top: 1px solid #1a1a2e;
+    margin-top: 10px;
+  }
+  .play-bar .fps-label { font-size: 13px; color: #aaa; }
+
+  /* 空状态提示 */
+  .empty-hint {
+    text-align: center;
+    color: #555;
+    padding: 20px 0;
+    font-size: 13px;
+  }
+
+  .toast {
+    position: fixed;
+    bottom: 30px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: #333;
+    color: #fff;
+    padding: 10px 24px;
+    border-radius: 10px;
+    font-size: 14px;
+    opacity: 0;
+    transition: opacity .3s;
+    pointer-events: none;
+    z-index: 999;
+  }
+  .toast.show { opacity: 1; }
+</style>
+</head>
+<body>
+
+<div class="app">
+  <div class="header">
+    <h1>🎬 Flipbook 动画手翻书</h1>
+    <p>一页一页画，翻起来就是动画！</p>
+  </div>
+
+  <div class="main-area">
+    <!-- 画板 -->
+    <div class="canvas-wrap">
+      <canvas id="drawCanvas" width="400" height="300"></canvas>
+      <div class="page-label" id="pageLabel">第 1 页 / 共 1 页</div>
+    </div>
+
+    <!-- 右侧 -->
+    <div class="side">
+      <!-- 工具 -->
+      <div class="tools-row">
+        <input type="color" id="colorPicker" value="#333333">
+        <div class="color-preview" id="colorPreview" style="background:#333;"></div>
+        <label>粗细</label>
+        <input type="range" id="sizeRange" min="1" max="20" value="4">
+        <span id="sizeLabel" style="font-size:13px;color:#aaa;">4</span>
+        <button class="btn btn-sm btn-outline" onclick="clearCanvas()">🗑 清空页</button>
+        <button class="btn btn-sm btn-warning" onclick="undoStroke()">↩ 撤销</button>
+      </div>
+
+      <!-- 操作按钮 -->
+      <div class="btn-row" style="margin-top:10px;">
+        <button class="btn btn-success" onclick="addPage()">➕ 加一页</button>
+        <button class="btn btn-primary" onclick="duplicatePage()">📋 复制当前页</button>
+        <button class="btn btn-outline" onclick="previewFlip()">📖 快速翻看</button>
+        <button class="btn btn-danger btn-sm" onclick="clearAll()" style="margin-left:auto;">全部清空</button>
+      </div>
+
+      <!-- 播放栏 -->
+      <div class="play-bar">
+        <button class="btn btn-success" id="playBtn" onclick="togglePlay()">▶ 播放</button>
+        <span class="fps-label">帧率</span>
+        <input type="range" id="fpsRange" min="2" max="24" value="8" style="width:80px;">
+        <span id="fpsLabel" style="font-size:13px;color:#aaa;">8 FPS</span>
+        <span style="margin-left:auto;font-size:13px;color:#888;" id="frameCountInfo">0 帧</span>
+      </div>
+
+      <!-- 帧列表 -->
+      <div class="filmstrip">
+        <div class="filmstrip-header">
+          <span>📽 帧列表</span>
+          <button class="btn btn-sm btn-outline" onclick="document.querySelector('.filmstrip-scroll').scrollLeft=0;">⬅</button>
+        </div>
+        <div id="warningMsg" class="empty-hint" style="display:none;"></div>
+        <div class="filmstrip-scroll" id="filmstripScroll"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ─── 状态 ───────────────────────────────
+const canvas = document.getElementById('drawCanvas');
+const ctx = canvas.getContext('2d');
+const W = 400, H = 300;
+
+let pages = [];        // 每帧: ImageData
+let currentIdx = 0;
+let isPlaying = false;
+let playTimer = null;
+let playIdx = 0;
+
+// 绘制状态
+let isDrawing = false;
+let lastX, lastY;
+let color = '#333333';
+let brushSize = 4;
+let undoStack = [];    // 当前页的撤销栈 (ImageData)
+
+// ─── 初始化 ───────────────────────────────
+function init() {
+  // 加载存储
+  const saved = localStorage.getItem('flipbook_data');
+  if (saved) {
+    try {
+      const data = JSON.parse(saved);
+      if (data.pages && data.pages.length) {
+        pages = data.pages.map(b64 => {
+          const img = new Image();
+          img.src = b64;
+          const tempCanvas = document.createElement('canvas');
+          tempCanvas.width = W; tempCanvas.height = H;
+          const tctx = tempCanvas.getContext('2d');
+          return new Promise(resolve => {
+            img.onload = () => { tctx.drawImage(img,0,0); resolve(tctx.getImageData(0,0,W,H)); };
+            img.onerror = () => resolve(createBlankImageData());
+          });
+        });
+        // 等所有图片加载完
+        Promise.all(pages).then(resolved => {
+          pages = resolved;
+          if (!pages.length) { pages = [createBlankImageData()]; }
+          currentIdx = 0;
+          renderThumbnails();
+          loadPage(currentIdx);
+        });
+        return;
+      }
+    } catch(e) {}
+  }
+  pages = [createBlankImageData()];
+  currentIdx = 0;
+  renderThumbnails();
+  loadPage(0);
+}
+
+function createBlankImageData() {
+  const c = document.createElement('canvas'); c.width=W; c.height=H;
+  const t = c.getContext('2d');
+  t.fillStyle = '#fff'; t.fillRect(0,0,W,H);
+  return t.getImageData(0,0,W,H);
+}
+
+function imageDataToCanvas(imgData) {
+  const c = document.createElement('canvas'); c.width=W; c.height=H;
+  const t = c.getContext('2d');
+  t.putImageData(imgData,0,0);
+  return c;
+}
+
+// ─── 页面操作 ───────────────────────────
+function loadPage(idx) {
+  if (idx < 0 || idx >= pages.length) return;
+  currentIdx = idx;
+  ctx.putImageData(pages[idx], 0, 0);
+  document.getElementById('pageLabel').textContent = `第 ${idx+1} 页 / 共 ${pages.length} 页`;
+  undoStack = [];
+  updateThumbActive();
+  updateFrameInfo();
+  // 滚动到当前缩略图
+  const thumbs = document.querySelectorAll('.thumb');
+  if (thumbs[idx]) thumbs[idx].scrollIntoView({ behavior:'smooth', inline:'center', block:'nearest' });
+}
+
+function saveCurrentPage() {
+  pages[currentIdx] = ctx.getImageData(0,0,W,H);
+}
+
+function addPage() {
+  saveCurrentPage();
+  const blank = createBlankImageData();
+  pages.splice(currentIdx+1, 0, blank);
+  currentIdx++;
+  renderThumbnails();
+  loadPage(currentIdx);
+}
+
+function duplicatePage() {
+  saveCurrentPage();
+  const copy = ctx.getImageData(0,0,W,H);
+  pages.splice(currentIdx+1, 0, copy);
+  currentIdx++;
+  renderThumbnails();
+  loadPage(currentIdx);
+}
+
+function deletePage(idx) {
+  if (pages.length <= 1) { showToast('至少保留一页'); return; }
+  pages.splice(idx, 1);
+  if (currentIdx >= pages.length) currentIdx = pages.length-1;
+  if (currentIdx < 0) currentIdx = 0;
+  renderThumbnails();
+  loadPage(currentIdx);
+}
+
+function clearCanvas() {
+  if (isDrawing) return;
+  undoStack.push(ctx.getImageData(0,0,W,H));
+  ctx.fillStyle = '#fff'; ctx.fillRect(0,0,W,H);
+  saveCurrentPage();
+  updateThumbnail(currentIdx);
+  showToast('已清空当前页');
+}
+
+function undoStroke() {
+  if (!undoStack.length) { showToast('没有可撤销的'); return; }
+  const prev = undoStack.pop();
+  ctx.putImageData(prev, 0, 0);
+  saveCurrentPage();
+  updateThumbnail(currentIdx);
+}
+
+function clearAll() {
+  if (!confirm('删除所有帧？')) return;
+  pages = [createBlankImageData()];
+  currentIdx = 0;
+  renderThumbnails();
+  loadPage(0);
+  saveToStorage();
+  showToast('已全部清空');
+}
+
+// ─── 绘制 ───────────────────────────────
+canvas.addEventListener('mousedown', startDraw);
+canvas.addEventListener('mousemove', draw);
+canvas.addEventListener('mouseup', endDraw);
+canvas.addEventListener('mouseleave', endDraw);
+canvas.addEventListener('touchstart', e => { const t=e.touches[0]; startDraw({offsetX:t.clientX-canvas.getBoundingClientRect().left, offsetY:t.clientY-canvas.getBoundingClientRect().top, preventDefault:()=>e.preventDefault()}); }, {passive:false});
+canvas.addEventListener('touchmove', e => { const t=e.touches[0]; e.preventDefault(); draw({offsetX:t.clientX-canvas.getBoundingClientRect().left, offsetY:t.clientY-canvas.getBoundingClientRect().top, preventDefault:()=>e.preventDefault()}); }, {passive:false});
+canvas.addEventListener('touchend', endDraw);
+
+function getPos(e) {
+  const rect = canvas.getBoundingClientRect();
+  return { x: (e.clientX - rect.left) * (W/rect.width), y: (e.clientY - rect.top) * (H/rect.height) };
+}
+
+function startDraw(e) {
+  if (isPlaying) return;
+  isDrawing = true;
+  undoStack.push(ctx.getImageData(0,0,W,H));
+  if (undoStack.length > 30) undoStack.shift();
+  const p = e.offsetX !== undefined ? {x:e.offsetX*(W/canvas.clientWidth), y:e.offsetY*(H/canvas.clientHeight)} : getPos(e);
+  lastX = p.x; lastY = p.y;
+}
+
+function draw(e) {
+  if (!isDrawing || isPlaying) return;
+  const p = e.offsetX !== undefined ? {x:e.offsetX*(W/canvas.clientWidth), y:e.offsetY*(H/canvas.clientHeight)} : getPos(e);
+  ctx.beginPath();
+  ctx.moveTo(lastX, lastY);
+  ctx.lineTo(p.x, p.y);
+  ctx.strokeStyle = color;
+  ctx.lineWidth = brushSize;
+  ctx.lineCap = 'round';
+  ctx.lineJoin = 'round';
+  ctx.stroke();
+  lastX = p.x; lastY = p.y;
+}
+
+function endDraw() {
+  if (!isDrawing) return;
+  isDrawing = false;
+  saveCurrentPage();
+  updateThumbnail(currentIdx);
+}
+
+// ─── 工具 ───────────────────────────────
+document.getElementById('colorPicker').addEventListener('input', e => {
+  color = e.target.value;
+  document.getElementById('colorPreview').style.background = color;
+});
+document.getElementById('sizeRange').addEventListener('input', e => {
+  brushSize = parseInt(e.target.value);
+  document.getElementById('sizeLabel').textContent = brushSize;
+});
+
+// ─── 缩略图 ───────────────────────────
+function renderThumbnails() {
+  const scroll = document.getElementById('filmstripScroll');
+  scroll.innerHTML = '';
+  if (pages.length === 0) return;
+  const fragment = document.createDocumentFragment();
+  pages.forEach((imgData, i) => {
+    const div = document.createElement('div');
+    div.className = 'thumb' + (i === currentIdx ? ' active' : '');
+    div.dataset.idx = i;
+    const mini = imageDataToCanvas(imgData);
+    const mc = document.createElement('canvas');
+    mc.width = 72; mc.height = 54;
+    const mctx = mc.getContext('2d');
+    mctx.drawImage(mini, 0, 0, 72, 54);
+    div.appendChild(mc);
+
+    const num = document.createElement('span'); num.className = 'thumb-num'; num.textContent = i+1;
+    div.appendChild(num);
+
+    const delBtn = document.createElement('button'); delBtn.className = 'thumb-del'; delBtn.textContent = '×';
+    delBtn.addEventListener('click', e => { e.stopPropagation(); deletePage(i); });
+    div.appendChild(delBtn);
+
+    div.addEventListener('click', () => {
+      saveCurrentPage();
+      loadPage(i);
+    });
+    fragment.appendChild(div);
+  });
+  scroll.appendChild(fragment);
+  updateFrameInfo();
+}
+
+function updateThumbActive() {
+  document.querySelectorAll('.thumb').forEach((el, i) => {
+    el.classList.toggle('active', i === currentIdx);
+  });
+}
+
+function updateThumbnail(idx) {
+  const thumbs = document.querySelectorAll('.thumb');
+  if (!thumbs[idx]) return;
+  const mini = imageDataToCanvas(pages[idx]);
+  const mc = document.createElement('canvas');
+  mc.width = 72; mc.height = 54;
+  const mctx = mc.getContext('2d');
+  mctx.drawImage(mini, 0, 0, 72, 54);
+  const old = thumbs[idx].querySelector('canvas');
+  if (old) thumbs[idx].replaceChild(mc, old);
+}
+
+function updateFrameInfo() {
+  document.getElementById('frameCountInfo').textContent = `${pages.length} 帧`;
+}
+
+// ─── 播放 ───────────────────────────────
+function togglePlay() {
+  if (isPlaying) { stopPlay(); return; }
+  if (pages.length < 2) { showToast('至少需要 2 帧才能播放'); return; }
+  isPlaying = true;
+  saveCurrentPage();
+  document.getElementById('playBtn').textContent = '⏹ 停止';
+  playIdx = currentIdx;
+  const fps = parseInt(document.getElementById('fpsRange').value);
+  const interval = 1000 / fps;
+  playTimer = setInterval(() => {
+    playIdx = (playIdx + 1) % pages.length;
+    ctx.putImageData(pages[playIdx], 0, 0);
+    updateThumbActive();
+    document.querySelectorAll('.thumb').forEach((el, i) => el.classList.toggle('active', i === playIdx));
+  }, interval);
+}
+
+function stopPlay() {
+  isPlaying = false;
+  clearInterval(playTimer); playTimer = null;
+  document.getElementById('playBtn').textContent = '▶ 播放';
+  loadPage(playIdx);
+}
+
+// ─── 预览翻看（鼠标拖动翻页效果）───
+let isPreviewing = false;
+let previewStartX = 0;
+let previewIdx = 0;
+
+function previewFlip() {
+  if (pages.length < 2) { showToast('至少需要 2 帧'); return; }
+  if (isPreviewing) { exitPreview(); return; }
+  isPreviewing = true;
+  saveCurrentPage();
+  previewIdx = currentIdx;
+  canvas.style.cursor = 'ew-resize';
+  showToast('👆 按住左右拖动翻页');
+  canvas.addEventListener('mousedown', previewStart);
+  canvas.addEventListener('touchstart', previewTouchStart, {passive:true});
+}
+
+function previewStart(e) {
+  const rect = canvas.getBoundingClientRect();
+  previewStartX = e.clientX;
+  previewIdx = currentIdx;
+  canvas.addEventListener('mousemove', previewMove);
+  canvas.addEventListener('mouseup', previewEnd);
+  canvas.addEventListener('mouseleave', previewEnd);
+}
+
+function previewTouchStart(e) {
+  previewStartX = e.touches[0].clientX;
+  previewIdx = currentIdx;
+  canvas.addEventListener('touchmove', previewTouchMove, {passive:false});
+  canvas.addEventListener('touchend', previewTouchEnd);
+}
+
+function previewMove(e) {
+  const dx = e.clientX - previewStartX;
+  const threshold = canvas.clientWidth / pages.length;
+  const offset = Math.round(dx / threshold);
+  let idx = previewIdx + offset;
+  idx = Math.max(0, Math.min(pages.length-1, idx));
+  ctx.putImageData(pages[idx], 0, 0);
+  updateThumbActive();
+  document.querySelectorAll('.thumb').forEach((el, i) => el.classList.toggle('active', i === idx));
+}
+
+function previewTouchMove(e) {
+  e.preventDefault();
+  const dx = e.touches[0].clientX - previewStartX;
+  const threshold = canvas.clientWidth / pages.length;
+  const offset = Math.round(dx / threshold);
+  let idx = previewIdx + offset;
+  idx = Math.max(0, Math.min(pages.length-1, idx));
+  ctx.putImageData(pages[idx], 0, 0);
+  updateThumbActive();
+  document.querySelectorAll('.thumb').forEach((el, i) => el.classList.toggle('active', i === idx));
+}
+
+function previewEnd() {
+  canvas.removeEventListener('mousemove', previewMove);
+  canvas.removeEventListener('mouseup', previewEnd);
+  canvas.removeEventListener('mouseleave', previewEnd);
+  exitPreview();
+}
+function previewTouchEnd() {
+  canvas.removeEventListener('touchmove', previewTouchMove);
+  canvas.removeEventListener('touchend', previewTouchEnd);
+  exitPreview();
+}
+
+function exitPreview() {
+  isPreviewing = false;
+  canvas.style.cursor = 'crosshair';
+  canvas.removeEventListener('mousedown', previewStart);
+  canvas.removeEventListener('touchstart', previewTouchStart);
+  // 恢复当前页
+  loadPage(currentIdx);
+}
+
+// FPS 显示
+document.getElementById('fpsRange').addEventListener('input', e => {
+  document.getElementById('fpsLabel').textContent = e.target.value + ' FPS';
+  if (isPlaying) { stopPlay(); togglePlay(); }
+});
+
+// ─── 存储 ───────────────────────────────
+function saveToStorage() {
+  try {
+    const data = { pages: pages.map(imgData => {
+      const c = imageDataToCanvas(imgData);
+      return c.toDataURL();
+    })};
+    localStorage.setItem('flipbook_data', JSON.stringify(data));
+  } catch(e) { /* 存不下就算了 */ }
+}
+
+// 每 5 秒自动存
+setInterval(saveToStorage, 5000);
+window.addEventListener('beforeunload', saveToStorage);
+
+// ─── Toast ───────────────────────────────
+function showToast(msg) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  clearTimeout(el._t);
+  el._t = setTimeout(() => el.classList.remove('show'), 2000);
+}
+
+// ─── 键盘快捷键 ─────────────────────────
+document.addEventListener('keydown', e => {
+  if (e.target.tagName === 'INPUT') return;
+  if (e.key === 'ArrowRight') { e.preventDefault(); saveCurrentPage(); loadPage(Math.min(currentIdx+1, pages.length-1)); }
+  if (e.key === 'ArrowLeft')  { e.preventDefault(); saveCurrentPage(); loadPage(Math.max(currentIdx-1, 0)); }
+  if (e.key === ' ' || e.key === 'Space') { e.preventDefault(); togglePlay(); }
+  if (e.key === 'n' || e.key === 'N') { addPage(); }
+});
+
+// ─── 启动 ───────────────────────────────
+init();
+
+// 让学生快速上手：检测到空白就显示提示
+if (pages.length === 1) {
+  // 画一个简单的引导图案
+  ctx.fillStyle = '#fff'; ctx.fillRect(0,0,W,H);
+  ctx.fillStyle = '#ddd';
+  ctx.font = '18px sans-serif'; ctx.textAlign = 'center';
+  ctx.fillText('✏️ 在这里画画', W/2, 140);
+  ctx.font = '14px sans-serif'; ctx.fillStyle = '#bbb';
+  ctx.fillText('然后点击「加一页」继续画下一帧', W/2, 175);
+  ctx.font = '13px sans-serif';
+  ctx.fillText('画好后点「播放」看动画！', W/2, 210);
+  saveCurrentPage();
+  updateThumbnail(0);
+}
+</script>
+</body>
+</html>
