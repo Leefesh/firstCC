@@ -1,0 +1,67 @@
+site_name: LLM 知识库
+site_description: 个人大语言模型学习笔记与知识整理
+site_author: Leefesh
+repo_url: https://github.com/Leefesh/firstCC
+repo_name: firstCC
+
+theme:
+  name: material
+  language: zh
+  palette:
+    - scheme: default
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/brightness-7
+        name: 切换暗色模式
+    - scheme: slate
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/brightness-4
+        name: 切换亮色模式
+  features:
+    - navigation.instant
+    - navigation.tracking
+    - navigation.top
+    - search.highlight
+    - content.code.copy
+    - content.code.annotate
+
+markdown_extensions:
+  - pymdownx.highlight:
+      anchor_linenums: true
+  - pymdownx.superfences
+  - pymdownx.tabbed:
+      alternate_style: true
+  - pymdownx.details
+  - admonition
+  - footnotes
+  - toc:
+      permalink: true
+
+nav:
+  - 🏠 首页: index.md
+  - 🎬 Karpathy 精讲: karpathy-intro.md
+  - 🗺️ AI 学习路线: ai-learning-path.md
+  - 📖 基础概念:
+      - 什么是 LLM: 基础概念/what-is-llm.md
+      - Transformer 架构: 基础概念/transformer.md
+      - Token 与分词: 基础概念/token.md
+      - 注意力机制: 基础概念/attention.md
+      - 预训练与微调: 基础概念/pretrain-finetune.md
+  - 🤖 模型介绍:
+      - GPT 系列: 模型介绍/gpt.md
+      - Claude 系列: 模型介绍/claude.md
+      - LLaMA 系列: 模型介绍/llama.md
+      - DeepSeek: 模型介绍/deepseek.md
+  - 🛠️ 应用实践:
+      - Prompt Engineering: 应用实践/prompt-engineering.md
+      - RAG 检索增强生成: 应用实践/rag.md
+      - Agent 智能体: 应用实践/agent.md
+      - API 调用入门: 应用实践/api-basics.md
+  - 🔗 工具资源:
+      - 常用工具: 工具资源/tools.md
+      - 学习资料: 工具资源/learning.md
+
+copyright: Copyright &copy; 2026 Leefesh
